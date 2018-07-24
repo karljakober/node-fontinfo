@@ -1,46 +1,35 @@
 cmake_minimum_required(VERSION 3.0)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 set(PROJECT_NAME "node-fontinfo")
 project(${PROJECT_NAME})
 
-set(freetype2_INSTALL ${CMAKE_BINARY_DIR}/freetype2)
-
 include(ucm)
-include(ExternalProject)
-
-ExternalProject_Add(
-	freetype2
-	SOURCE_DIR ${CMAKE_SOURCE_DIR}/external/freetype2
-	URL "https://download.savannah.gnu.org/releases/freetype/freetype-2.9.tar.gz"
-	CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${freetype2_INSTALL}
-)
-
-set(freetype2_INCLUDE_DIRS ${freetype2_INSTALL}/include/freetype2)
-set(freetype2_DEBUG_LIBRARY
-	${freetype2_INSTALL}/lib/freetyped${CMAKE_STATIC_LIBRARY_SUFFIX})
-	
-set(freetype2_RELEASE_LIBRARY
-	${freetype2_INSTALL}/lib/freetype${CMAKE_STATIC_LIBRARY_SUFFIX})
 
 set(fontinfo_SOURCES
 	src/fontinfo/fontinfo.c)
-	
+
 set(fontinfo_HEADERS
 	src/fontinfo/fontinfo.h
 	src/fontinfo/endian.h)
 
-add_library(fontinfo STATIC ${fontinfo_SOURCES})
+add_library(fontinfo SHARED ${fontinfo_SOURCES})
 
-target_include_directories(fontinfo PUBLIC ${freetype2_INCLUDE_DIRS})
+find_package(FreeType)
+if(FREETYPE_FOUND)
+    include_directories(${FREETYPE_INCLUDE_DIR})
+    set(STATUS_FREETYPE "OK")
+else()
+    set(STATUS_FREETYPE "not found")
+endif()
 
-target_link_libraries(fontinfo
-	optimized ${freetype2_RELEASE_LIBRARY}
-	debug ${freetype2_DEBUG_LIBRARY})
 
-add_dependencies(fontinfo freetype2)
-
+message(
+    "System Dependencies\n"
+    "-------------------\n"
+    "* freetype                     : ${STATUS_FREETYPE}\n"
+)
 
 add_library(${PROJECT_NAME} SHARED "src/module.cpp")
 target_link_libraries(${PROJECT_NAME} fontinfo ${CMAKE_JS_LIB})
